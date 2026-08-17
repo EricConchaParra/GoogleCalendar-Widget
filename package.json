@@ -1,0 +1,40 @@
+{
+  "name": "calendar-widget",
+  "version": "1.0.0",
+  "description": "Widget de escritorio always-on-top que muestra la proxima reunion de Google Calendar",
+  "main": "src/main/index.js",
+  "author": "Eric Concha",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^31.3.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.ericconcha.calendarwidget",
+    "productName": "CalendarWidget",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

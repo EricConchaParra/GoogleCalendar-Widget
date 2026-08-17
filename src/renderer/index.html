@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' data:;"
+    />
+    <title>CalendarWidget</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <section id="setup" class="panel setup hidden">
+        <header class="drag-region setup-header">
+          <span class="title-xs">Connect Google Calendar</span>
+          <button id="setupQuitBtn" class="icon-btn no-drag" title="Hide (stays in the tray)">✕</button>
+        </header>
+        <div class="setup-body">
+          <label class="field">
+            <span>Client ID</span>
+            <input id="clientId" type="text" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Client Secret</span>
+            <input id="clientSecret" type="password" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Google account (optional)</span>
+            <input id="accountEmail" type="email" placeholder="you@company.com" autocomplete="off" spellcheck="false" />
+          </label>
+          <button id="connectBtn" class="primary-btn no-drag">Connect with Google</button>
+          <p id="setupError" class="error-text hidden"></p>
+          <p class="hint">
+            This opens your browser for Google's consent screen. Your credentials are stored
+            encrypted in your Windows profile, never in plain text.
+          </p>
+        </div>
+      </section>
+
+      <section id="widget" class="panel widget hidden">
+        <header class="drag-region widget-header">
+          <button id="expandBtn" class="icon-btn no-drag" title="Expand">
+            <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 4.5L6 7.5L9 4.5" />
+            </svg>
+          </button>
+          <div class="header-right no-drag">
+            <span class="stale-badge hidden" id="staleBadge" title="">outdated</span>
+            <button id="refreshBtn" class="icon-btn" title="Refresh now">
+              <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9.6 3.3A4 4 0 1 1 8.3 2" />
+                <path d="M9.6 1.4v2.4H7.2" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="next-meeting" id="nextMeetingCard">
+          <div class="meeting-title" id="meetingTitle">Loading…</div>
+          <div class="meeting-time-range" id="meetingTimeRange"></div>
+          <div class="countdown-row">
+            <span class="countdown" id="countdown">
+              <span class="urgency-dot"></span>
+              <span id="countdownText">—</span>
+            </span>
+            <button class="join-btn no-drag hidden" id="joinBtn">Join</button>
+          </div>
+        </div>
+
+        <div class="agenda-list hidden" id="agendaList">
+          <div class="agenda-group">
+            <h2>Today</h2>
+            <ul id="todayList" class="agenda-items"></ul>
+          </div>
+          <div class="agenda-group">
+            <h2>Tomorrow</h2>
+            <ul id="tomorrowList" class="agenda-items"></ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="../shared/time.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
