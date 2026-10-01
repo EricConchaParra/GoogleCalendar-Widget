@@ -6,6 +6,16 @@ const path = require("path");
 const { BrowserWindow, screen } = require("electron");
 
 const COMPACT_SIZE = { width: 340, height: 96 };
+// The compact card is sized to the pixel, so anything beyond the single-meeting
+// layout needs its own height — without it the flex column squeezes the title
+// (overflow:hidden ⇒ min-height 0) to zero. Two kinds of extras, both matching
+// styles.css: a stacked row per additional concurrent meeting, and one-line
+// notes ("Up next …", "+N more").
+const STACKED_ROW_HEIGHT = 26;
+const NOTE_LINE_HEIGHT = 18;
+const MAX_STACKED_ROWS = 2;
+const MAX_NOTE_LINES = 2;
+const NO_EXTRAS = { stackedRows: 0, noteLines: 0 };
 const EXPANDED_SIZE = { width: 360, height: 440 };
 const SETUP_SIZE = { width: 340, height: 450 };
 const RESIZE_DURATION_MS = 180;
@@ -28,9 +38,25 @@ function defaultPosition(width, height) {
   };
 }
 
-function sizeForMode(mode, expanded) {
+/** Clamps whatever the renderer reported to counts the card can actually show. */
+function normalizeExtras(extras) {
+  const count = (value, max) => Math.min(max, Math.max(0, Math.trunc(Number(value)) || 0));
+  return {
+    stackedRows: count(extras && extras.stackedRows, MAX_STACKED_ROWS),
+    noteLines: count(extras && extras.noteLines, MAX_NOTE_LINES),
+  };
+}
+
+function sizeForMode(mode, expanded, extras = NO_EXTRAS) {
   if (mode === "setup") return SETUP_SIZE;
-  return expanded ? EXPANDED_SIZE : COMPACT_SIZE;
+  if (expanded) return EXPANDED_SIZE;
+  return {
+    width: COMPACT_SIZE.width,
+    height:
+      COMPACT_SIZE.height +
+      extras.stackedRows * STACKED_ROW_HEIGHT +
+      extras.noteLines * NOTE_LINE_HEIGHT,
+  };
 }
 
 function createWidgetWindow(config, { startHidden = false, initialMode = "compact" } = {}) {
@@ -130,8 +156,8 @@ function animateToSize(win, target) {
 }
 
 /** Animates between the compact and expanded widget modes. */
-function animateToMode(win, expanded) {
-  animateToSize(win, expanded ? EXPANDED_SIZE : COMPACT_SIZE);
+function animateToMode(win, expanded, extras = NO_EXTRAS) {
+  animateToSize(win, sizeForMode("compact", expanded, extras));
 }
 
 function currentTopLeft(win) {
@@ -143,6 +169,9 @@ module.exports = {
   COMPACT_SIZE,
   EXPANDED_SIZE,
   SETUP_SIZE,
+  NO_EXTRAS,
+  normalizeExtras,
+  sizeForMode,
   createWidgetWindow,
   animateToMode,
   animateToSize,

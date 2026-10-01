@@ -41,13 +41,34 @@ function filterEvents(rawEvents) {
 }
 
 /**
- * Next meeting is the first event whose END is still in the future, so an
- * in-progress meeting stays the active card instead of vanishing at start time.
+ * The meetings the compact card is about right now. Calendars double-book, so
+ * this is a list: every meeting in progress, or — when nothing is live — every
+ * meeting tied for the earliest upcoming start. An in-progress meeting stays
+ * on the card until it ENDS instead of vanishing at start time.
  * @param {object[]} events already filtered+sorted
  * @param {number} nowMs
+ * @returns {object[]} sorted by start; empty when nothing is left
  */
-function selectNextMeeting(events, nowMs) {
-  return events.find((e) => e.endMs > nowMs) || null;
+function selectActiveMeetings(events, nowMs) {
+  const pending = events.filter((e) => e.endMs > nowMs);
+  const live = pending.filter((e) => e.startMs <= nowMs);
+  if (live.length > 0) return live;
+  if (pending.length === 0) return [];
+  return pending.filter((e) => e.startMs === pending[0].startMs);
+}
+
+/**
+ * The meeting that starts before the live ones are all over (back-to-back or
+ * overlapping), i.e. the one there is no gap to prepare for. Null while
+ * nothing is in progress — the card itself is already the "next" one then.
+ * @param {object[]} events already filtered+sorted
+ * @param {object[]} active result of selectActiveMeetings for the same nowMs
+ * @param {number} nowMs
+ */
+function selectUpNext(events, active, nowMs) {
+  if (active.length === 0 || active[0].startMs > nowMs) return null;
+  const lastEndMs = Math.max(...active.map((e) => e.endMs));
+  return events.find((e) => e.startMs > nowMs && e.startMs <= lastEndMs) || null;
 }
 
 /**
@@ -83,9 +104,11 @@ function dateKeyInZone(ms, timeZone) {
   }).format(new Date(ms));
 }
 
-const api = { normalizeEvent, filterEvents, selectNextMeeting, groupByDay };
+// Named distinctly from time.js's `api`: both load as classic scripts in the
+// renderer, where top-level consts share one scope and a repeat would throw.
+const filterApi = { normalizeEvent, filterEvents, selectActiveMeetings, selectUpNext, groupByDay };
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = api;
+  module.exports = filterApi;
 } else {
-  window.CalendarWidgetFilter = api;
+  window.CalendarWidgetFilter = filterApi;
 }

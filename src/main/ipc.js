@@ -3,7 +3,7 @@
 "use strict";
 
 const { ipcMain, shell } = require("electron");
-const { animateToMode } = require("./window");
+const { animateToMode, animateToSize, normalizeExtras, SETUP_SIZE } = require("./window");
 
 const ALLOWED_LINK_SCHEMES = new Set(["https:"]);
 const ZOOM_DEEP_LINK_SCHEME = "zoommtg:";
@@ -18,6 +18,8 @@ const ZOOM_DEEP_LINK_SCHEME = "zoommtg:";
  * @param {() => boolean} ctx.isPollerRunning
  * @param {(running: boolean) => void} ctx.setPollerRunning
  * @param {() => object | null} ctx.getLastAgendaPayload
+ * @param {() => { stackedRows: number, noteLines: number }} ctx.getCompactExtras
+ * @param {(extras: { stackedRows: number, noteLines: number }) => void} ctx.setCompactExtras
  */
 function registerIpcHandlers(ctx) {
   ipcMain.handle("agenda:refresh", () => {
@@ -35,8 +37,27 @@ function registerIpcHandlers(ctx) {
     const config = ctx.getConfig();
     const nextExpanded = typeof expand === "boolean" ? expand : !config.expanded;
     ctx.updateConfig({ expanded: nextExpanded });
-    animateToMode(win, nextExpanded);
+    animateToMode(win, nextExpanded, ctx.getCompactExtras());
     return { expanded: nextExpanded };
+  });
+
+  // The renderer owns the rows below the main meeting — stacked concurrent
+  // meetings and the "Up next …" / "+N more" notes. They depend on the clock,
+  // which it re-evaluates between polls, so it reports the counts here and the
+  // compact card grows by exactly those rows' height instead of clipping.
+  ipcMain.handle("ui:compactExtras", (_event, extras) => {
+    const next = normalizeExtras(extras);
+    const current = ctx.getCompactExtras();
+    if (next.stackedRows === current.stackedRows && next.noteLines === current.noteLines) {
+      return { ok: true };
+    }
+    ctx.setCompactExtras(next);
+
+    // Only the compact card is height-sensitive; expanded and setup have slack.
+    if (!ctx.getConfig().expanded && ctx.auth.isSignedIn()) {
+      animateToMode(ctx.getWin(), false, next);
+    }
+    return { ok: true };
   });
 
   ipcMain.handle("link:open", (_event, url) => {
@@ -71,7 +92,31 @@ function registerIpcHandlers(ctx) {
         ctx.poller.start();
         ctx.setPollerRunning(true);
       }
-      animateToMode(ctx.getWin(), ctx.getConfig().expanded);
+      animateToMode(ctx.getWin(), ctx.getConfig().expanded, ctx.getCompactExtras());
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // Same connection, fresh token: reuses the stored client credentials and
+  // account hint, so a refresh token Google expired or revoked can be replaced
+  // straight from the "outdated" badge — nothing to re-enter.
+  ipcMain.handle("auth:reconnect", async () => {
+    const config = ctx.getConfig();
+    if (!config.clientId || !config.clientSecret) {
+      // Nothing on file to reuse — fall back to the full setup screen.
+      animateToSize(ctx.getWin(), SETUP_SIZE);
+      return { ok: false, needsSetup: true, error: "No saved credentials — connect again." };
+    }
+    try {
+      await ctx.auth.startSignIn(config.clientId, config.clientSecret, config.accountEmail);
+      if (ctx.isPollerRunning()) {
+        ctx.poller.refreshNow();
+      } else {
+        ctx.poller.start();
+        ctx.setPollerRunning(true);
+      }
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };

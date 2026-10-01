@@ -46,7 +46,7 @@
             </svg>
           </button>
           <div class="header-right no-drag">
-            <span class="stale-badge hidden" id="staleBadge" title="">outdated</span>
+            <button type="button" class="stale-badge hidden" id="staleBadge" title="">outdated</button>
             <button id="refreshBtn" class="icon-btn" title="Refresh now">
               <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9.6 3.3A4 4 0 1 1 8.3 2" />
@@ -66,6 +66,11 @@
             </span>
             <button class="join-btn no-drag hidden" id="joinBtn">Join</button>
           </div>
+          <div class="stacked-meetings hidden" id="stackedMeetings"></div>
+          <div class="card-note hidden" id="moreMeetings"></div>
+          <div class="card-note hidden" id="upNext">
+            Up next <span id="upNextTime"></span>: <span id="upNextTitle"></span>
+          </div>
         </div>
 
         <div class="agenda-list hidden" id="agendaList">
@@ -82,6 +87,7 @@
     </div>
 
     <script src="../shared/time.js"></script>
+    <script src="../shared/filter.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

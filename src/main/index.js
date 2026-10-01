@@ -9,12 +9,13 @@ const {
   animateToMode,
   animateToSize,
   currentTopLeft,
+  NO_EXTRAS,
   SETUP_SIZE,
 } = require("./window");
 const { createTray } = require("./tray");
 const { createPoller } = require("./google-calendar");
 const { registerIpcHandlers } = require("./ipc");
-const { filterEvents, selectNextMeeting, groupByDay } = require("../shared/filter");
+const { filterEvents, groupByDay } = require("../shared/filter");
 const { extractMeetingLink } = require("../shared/meeting-link");
 
 const GOOGLE_CALENDAR_URL = "https://calendar.google.com/calendar/r";
@@ -43,6 +44,11 @@ if (!app.requestSingleInstanceLock()) {
   // right moment (a 'send' fired before the renderer's listener is attached
   // is silently lost — this closes that race).
   let lastAgendaPayload = null;
+  // How many rows the renderer is currently showing below the main meeting
+  // (stacked concurrent meetings, "Up next …" / "+N more" notes). Only the
+  // renderer knows: they depend on the clock, which it re-evaluates on every
+  // tick, not just when a poll lands. The compact window height follows it.
+  let compactExtras = NO_EXTRAS;
 
   function updateConfig(patch) {
     appConfig = { ...appConfig, ...patch };
@@ -65,11 +71,12 @@ if (!app.requestSingleInstanceLock()) {
   function processAndSend(rawItems, meta) {
     const filtered = filterEvents(rawItems);
     const now = Date.now();
-    const nextRaw = selectNextMeeting(filtered, now);
     const { today, tomorrow } = groupByDay(filtered, appConfig.timeZone, now);
 
     const payload = {
-      nextMeeting: nextRaw ? enrichEvent(nextRaw) : null,
+      // Everything not over yet. The renderer picks the active meeting(s) out
+      // of this on every tick, so the card moves on between polls.
+      upcoming: filtered.filter((e) => e.endMs > now).map(enrichEvent),
       today: today.map(enrichEvent),
       tomorrow: tomorrow.map(enrichEvent),
       meta: {
@@ -139,7 +146,7 @@ if (!app.requestSingleInstanceLock()) {
         onToggleExpand: () => {
           const next = !appConfig.expanded;
           updateConfig({ expanded: next });
-          animateToMode(win, next);
+          animateToMode(win, next, compactExtras);
           win.webContents.send("ui:expandedChanged", next);
           syncTray();
         },
@@ -193,6 +200,10 @@ if (!app.requestSingleInstanceLock()) {
         pollerRunning = v;
       },
       getLastAgendaPayload: () => lastAgendaPayload,
+      getCompactExtras: () => compactExtras,
+      setCompactExtras: (v) => {
+        compactExtras = v;
+      },
     });
 
     applyAutostart(Boolean(appConfig.openAtLogin));
@@ -200,7 +211,7 @@ if (!app.requestSingleInstanceLock()) {
     globalShortcut.register(HOTKEY, () => {
       const next = !appConfig.expanded;
       updateConfig({ expanded: next });
-      animateToMode(win, next);
+      animateToMode(win, next, compactExtras);
       win.webContents.send("ui:expandedChanged", next);
       syncTray();
     });

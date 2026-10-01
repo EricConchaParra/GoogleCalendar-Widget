@@ -205,15 +205,30 @@ body {
   flex-shrink: 0;
 }
 
+/* Also the reconnect affordance: clicking it re-opens Google's consent screen
+   with the credentials already on file, so an expired refresh token can be
+   replaced without retyping anything. */
 .stale-badge {
+  font-family: inherit;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--accent-soon);
   background: rgba(245, 166, 35, 0.14);
+  border: none;
   border-radius: 999px;
   padding: 3px 8px;
+  cursor: pointer;
+}
+
+.stale-badge:hover:not(:disabled) {
+  background: rgba(245, 166, 35, 0.26);
+}
+
+.stale-badge:disabled {
+  cursor: default;
+  opacity: 0.75;
 }
 
 .header-right {
@@ -239,6 +254,9 @@ body {
   min-height: 0;
 }
 
+/* flex-shrink:0 on these rows matters: `overflow:hidden` makes their min-height
+   0, so in a height-constrained flex column they'd silently collapse to nothing
+   rather than overflow — the title would just disappear. */
 .meeting-title {
   font-size: 13px;
   line-height: 16px;
@@ -246,12 +264,14 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .meeting-time-range {
   font-size: 10.5px;
   line-height: 13px;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .countdown-row {
@@ -313,6 +333,78 @@ body {
     opacity: 0.5;
     transform: scale(0.85);
   }
+}
+
+/* Concurrent meetings beyond the main one, a slim row each. The heights here
+   are mirrored in main/window.js, which grows the compact window to fit:
+   each row costs 26px (22 + 4 gap; the container's margin and the card's own
+   gap stand in for the first row's gap), each .card-note 18px (13 + 3 + gap). */
+.stacked-meetings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.stacked-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+}
+
+.stacked-row .urgency-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.stacked-row.live .urgency-dot {
+  background: var(--accent-live);
+}
+
+.stacked-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.stacked-title:hover {
+  text-decoration: underline;
+}
+
+.stacked-time {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stacked-row .join-btn {
+  padding: 3px 10px;
+  flex-shrink: 0;
+}
+
+.card-note {
+  font-size: 10.5px;
+  line-height: 13px;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.card-note span {
+  color: var(--text-secondary);
 }
 
 .join-btn {

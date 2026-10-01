@@ -1,5 +1,5 @@
 // Minimal, explicit bridge between the sandboxed renderer and main. No direct
-// Node/Electron API is ever exposed — only these six purpose-built calls.
+// Node/Electron API is ever exposed — only these purpose-built calls.
 "use strict";
 
 const { contextBridge, ipcRenderer } = require("electron");
@@ -13,10 +13,13 @@ contextBridge.exposeInMainWorld("calendarWidget", {
   refreshAgenda: () => ipcRenderer.invoke("agenda:refresh"),
   getAgenda: () => ipcRenderer.invoke("agenda:get"),
   toggleExpand: (expand) => ipcRenderer.invoke("ui:toggleExpand", expand),
+  setCompactExtras: (extras) => ipcRenderer.invoke("ui:compactExtras", extras),
   openLink: (url) => ipcRenderer.invoke("link:open", url),
   startAuth: (clientId, clientSecret, accountEmail) =>
     ipcRenderer.invoke("auth:start", { clientId, clientSecret, accountEmail }),
   getAuthStatus: () => ipcRenderer.invoke("auth:status"),
+  // Re-runs Google's consent screen with the credentials already on file.
+  reconnectAuth: () => ipcRenderer.invoke("auth:reconnect"),
   onExpandedChanged(callback) {
     const listener = (_event, expanded) => callback(expanded);
     ipcRenderer.on("ui:expandedChanged", listener);
